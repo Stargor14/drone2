@@ -6,4 +6,6 @@ Using ps3 controller with [sixaxispairer](https://github.com/user-none/sixaxispa
 
 3d Printed frame, raspi zero W for processing, esp32 for flight control, [rs2205 motors](https://www.aliexpress.com/item/1005001270601236.html?spm=a2g0o.order_list.order_list_main.122.6ecf1802ioyX7h) and included escs
 
+Big thanks to original repo creator, saving me tons of time on the PID algo
+
 ![wiring.png](Wiring.png "Wiring")

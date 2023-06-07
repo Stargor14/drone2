@@ -1,6 +1,6 @@
 # autoDrone2
 
-Second attempt at autonomous drone 2 years later, using esp32 drone repo by PepeTheFroggie for boilerplate PID and motor control code.
+Second attempt at autonomous drone 2 years later, using esp32 drone repo by PepeTheFroggie for PID and motor control code.
 
 Using ps3 controller with [sixaxispairer](https://github.com/user-none/sixaxispairer) and [esp32-ps3](https://github.com/jvpernis/esp32-ps3) for flight testing
 

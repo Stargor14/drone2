@@ -8,5 +8,5 @@ Using ps3 controller with [sixaxispairer](https://github.com/user-none/sixaxispa
 
 Big thanks to original repo creator for something to work off of with the PID code
 ![version1.jpg](photos/version1.jpeg)
-![Stress.png](photos/StressSimulation3.png)
+![StressSimulation3.png](photos/StressSimulation3.png)
 ![wiring.png](photos/Wiring.png "Wiring")

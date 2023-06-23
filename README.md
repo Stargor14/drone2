@@ -8,4 +8,4 @@ Using ps3 controller with [sixaxispairer](https://github.com/user-none/sixaxispa
 
 Big thanks to original repo creator, saving me tons of time on the PID algo and tuning
 
-![wiring.png](Wiring.png "Wiring")
+![wiring.png](photos/Wiring.png "Wiring")

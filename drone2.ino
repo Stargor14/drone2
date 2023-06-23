@@ -1,4 +1,5 @@
 #include <esp_now.h>
+#include <Ps3Controller.h>
 #include <WiFi.h>
 #include <Wire.h>
 #include <EEPROM.h>
@@ -25,7 +26,7 @@ extern float D_Level_PID;
 volatile boolean recv;
 //volatile int peernum = 0;
 //esp_now_peer_info_t slave;
-
+/*
 void recv_cb(const uint8_t *macaddr, const uint8_t *data, int len)
 {
   recv = true;
@@ -35,21 +36,19 @@ void recv_cb(const uint8_t *macaddr, const uint8_t *data, int len)
   {
     for (int i=0;i<RCdataSize;i++) RCdata.data[i] = data[i];
   }
-  /*
   if (!esp_now_is_peer_exist(macaddr))
   {
     Serial.println("adding peer ");
     esp_now_add_peer(macaddr, ESP_NOW_ROLE_COMBO, WIFI_CHANNEL, NULL, 0);
     peernum++;
   }
-  */
 };
-
+*/
 #define ACCRESO 4096
 #define CYCLETIME 3
-#define MINTHROTTLE 1090
-#define MIDRUD 1495
-#define THRCORR 19
+#define MINTHROTTLE 1100
+#define MIDRUD 1500
+#define THRCORR 0
 
 enum ang { ROLL,PITCH,YAW };
 
@@ -59,17 +58,10 @@ static int16_t gyroData[3];
 static float angle[2]    = {0,0};  
 extern int calibratingA;
 
-#ifdef flysky
-  #define ROL 0
-  #define PIT 1
-  #define THR 2
-  #define RUD 3
-#else //orangerx
-  #define ROL 1
-  #define PIT 2
-  #define THR 0
-  #define RUD 3
-#endif
+#define ROL 0
+#define PIT 1
+#define THR 2
+#define RUD 3
 
 #define AU1 4
 #define AU2 5
@@ -87,6 +79,9 @@ int debugvalue = 0;
 void setup() 
 {
   Serial.begin(115200); Serial.println();
+	Ps3.begin();
+	Ps3.attach(update);
+	Ps3.attachOnConnect(onConnect);
 
   delay(3000); // give it some time to stop shaking after battery plugin
   MPU6050_init();
@@ -98,26 +93,11 @@ void setup()
   if (EEPROM.read(62) != 0xAA) Serial.println("Need to check and write PID");
   else PID_Read(); // eeprom is initialized
 
-  
-  WiFi.mode(WIFI_STA); // Station mode for esp-now 
-  #if defined webServer
-    setupwebserver();
-    delay(500); 
-  #endif
-
-
-  #if defined externRC
-    init_RC();
-  #else
-    Serial.printf("This mac: %s, ", WiFi.macAddress().c_str()); 
-    Serial.printf(", channel: %i\n", WIFI_CHANNEL); 
-    if (esp_now_init() != 0) Serial.println("*** ESP_Now init failed");
-    esp_now_register_recv_cb(recv_cb);
-  #endif
-
-  delay(500); 
-  pinMode(LED,OUTPUT);
-  digitalWrite(LED,LOW);
+	//Signal: 14,25,16,18 Pull down: 32,26,5
+	pinMode(32, INPUT_PULLDOWN);  
+	pinMode(26, INPUT_PULLDOWN);  
+	pinMode(5, INPUT_PULLDOWN);  
+  	delay(500); 
   initServo();
 }
 
@@ -128,17 +108,10 @@ void loop()
   uint32_t now,mnow,diff; 
   now = millis(); // actual time
   if (debugvalue == 5) mnow = micros();
-
-  #if defined webServer
-    loopwebserver();
-  #endif
-
   if (recv)
   {
-    recv = false;  
-    #if !defined externRC  
-      buf_to_rc();
-    #endif
+	recv=false;
+    buf_to_rc();
 
     if (debugvalue == 4) Serial.printf("%4d %4d %4d %4d \n", rcValue[0], rcValue[1], rcValue[2], rcValue[3]); 
   
@@ -162,7 +135,6 @@ void loop()
       if (rcValue[THR] < MINTHROTTLE) armct++;
       if (armct >= 25) 
       { 
-        digitalWrite(LED,HIGH); 
         armed = true;
       }
     }

@@ -1,49 +1,28 @@
-
-#if defined externRC
-//------------------------------------------------
-  #define PPMIN_CHANNELS 6  // dont raise this
-
-  volatile uint32_t last = 0;
-  volatile uint8_t  chan = 0;
-
-  IRAM_ATTR void rxInt() 
-  {
-    uint32_t now,diff; 
-    if (!gpio_get_level(RC_IN_GPIO)) return; // because edge triggering on esp32 doesent work yet
-    
-    now = micros();
-    diff = now - last;
-    last = now;
-
-    if      (diff > 3000) { chan = 0; } // Sync gap
-    else if (chan < CHANNELS)
-    {
-      if (950<diff && diff<2050)
-      {
-        rcValue[chan] = diff;
-        chan++;
-      }
-      else chan = CHANNELS; // skip, corrupted signal.
-    }
-    if (chan == PPMIN_CHANNELS) recv = true;
-  }
-  
-  void init_RC()
-  {
-    pinMode(RC_IN_PIN,INPUT);
-    attachInterrupt(RC_IN_PIN,rxInt,CHANGE);
-  }
-  void end_RC()
-  {
-    detachInterrupt(RC_IN_PIN);
-  }
-  
-//------------------------------------------------
-#endif
-
 void buf_to_rc()
 {
   uint8_t seq;
+	rcValue[THR]=map(max(0,leftStickY),0,127,1000,1800);
+	rcValue[RUD]=map(leftStickX,-127,127,1000,2000);
+	rcValue[ROL]=map(rightStickX,-127,127,1000,2000);
+	rcValue[PIT]=map(rightStickY,-127,127,1000,2000);
+
+/*
+	Serial.print(leftStickY);
+	Serial.print(" ");
+	Serial.print(leftStickX);
+	Serial.print(" ");
+	Serial.print(rightStickX);
+	Serial.print(" ");
+	Serial.println(rightStickY);
+
+	Serial.print(rcValue[THR]);
+	Serial.print(" ");
+	Serial.print(rcValue[RUD]);
+	Serial.print(" ");
+	Serial.print(rcValue[ROL]);
+	Serial.print(" ");
+	Serial.println(rcValue[PIT]);
+
   rcValue[0] = RCdata.chans.Ch1;
   rcValue[1] = RCdata.chans.Ch2;
   rcValue[2] = RCdata.chans.Ch3;
@@ -53,6 +32,7 @@ void buf_to_rc()
   rcValue[6] = RCdata.chans.Ch7;
   rcValue[7] = RCdata.chans.Ch8;
   seqno = RCdata.chans.spare;
+*/
 }
 
 static uint16_t servo[4];
@@ -61,42 +41,52 @@ void mix()
 {
   if (armed & (rcValue[THR] > MINTHROTTLE))
   {
-    servo[0] = constrain(rcValue[THR] - axisPID[ROLL] + axisPID[PITCH] - axisPID[YAW],1000,2000);
-    servo[1] = constrain(rcValue[THR] - axisPID[ROLL] - axisPID[PITCH] + axisPID[YAW],1000,2000);
-    servo[2] = constrain(rcValue[THR] + axisPID[ROLL] + axisPID[PITCH] + axisPID[YAW],1000,2000);
-    servo[3] = constrain(rcValue[THR] + axisPID[ROLL] - axisPID[PITCH] - axisPID[YAW],1000,2000);
+    servo[0] = constrain(rcValue[THR] - axisPID[ROLL] + axisPID[PITCH] - axisPID[YAW],1200,2000);
+	servo[1] = constrain(rcValue[THR] - axisPID[ROLL] - axisPID[PITCH] + axisPID[YAW],1200,2000);
+    servo[2] = constrain(rcValue[THR] + axisPID[ROLL] + axisPID[PITCH] + axisPID[YAW],1200,2000);
+    servo[3] = constrain(rcValue[THR] + axisPID[ROLL] - axisPID[PITCH] - axisPID[YAW],1200,2000);
+/*
+	Serial.println();
+	Serial.print(servo[0]);
+	Serial.print(" ");
+	Serial.print(servo[1]);
+	Serial.print(" ");
+	Serial.print(servo[2]);
+	Serial.print(" ");
+	Serial.print(servo[3]);
+	Serial.println();
+*/
   }
   else 
   { 
     axisPID[0] = 0; axisPID[1] = 0; axisPID[2] = 0;
     servo[0] = 1000; servo[1] = 1000; servo[2] = 1000; servo[3] = 1000;
   }
-  /*
   Serial.print(servo[0]); Serial.print("  ");
   Serial.print(servo[1]); Serial.print("  ");
   Serial.print(servo[2]); Serial.print("  ");
   Serial.print(servo[3]); Serial.println();
-  */
 }
 
 
 #if defined PWMOUT //----------------------------------------------
 
-const int MotPin0 = 32;  //HR
-const int MotPin1 = 33;  //VR
-const int MotPin2 = 25;  //HL
-const int MotPin3 = 26;  //VL
-const int MotChannel0 = 0;
-const int MotChannel1 = 1;   
-const int MotChannel2 = 2;
-const int MotChannel3 = 3;
-
+//Signal: 14,25,16,18 Pull down: 32,26,5
+const int MotPin0 = 25;  //BR
+const int MotPin1 = 14;  //FR
+const int MotPin2 = 18;  //BL
+const int MotPin3 = 16;  //FL
+const int MotChannel0 = 2;
+const int MotChannel1 = 3;   
+const int MotChannel2 = 4;
+const int MotChannel3 = 5;
+const int safety = 1400;
 void writeServo() 
 {
-  ledcWrite(MotChannel0, servo[0]);
-  ledcWrite(MotChannel1, servo[1]);
-  ledcWrite(MotChannel2, servo[2]);
-  ledcWrite(MotChannel3, servo[3]);
+  ledcWrite(MotChannel0, uint16_t(min(safety,int(servo[0]))));
+  ledcWrite(MotChannel1, uint16_t(min(safety,int(servo[1]))));
+  ledcWrite(MotChannel2, uint16_t(min(safety,int(servo[2]))));
+  ledcWrite(MotChannel3, uint16_t(min(safety,int(servo[3]))));
 }
 
 void initServo() 

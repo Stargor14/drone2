@@ -1,4 +1,3 @@
-
 float yawRate = 5.0;
 float rollPitchRate = 5.0;
 
@@ -27,7 +26,7 @@ int plotct;
 int16_t deltab[6][3];
 int8_t  deltabpt = 0;
 int32_t deltasum[3];
-  
+long lastTime=0;
 void pid()
 {
   uint8_t axis;
@@ -35,7 +34,6 @@ void pid()
   float AngleRateTmp, RateError;
   float PTerm,ITerm,DTerm;
   int16_t delta;
-
   
       //----------PID controller----------
       for(axis=0;axis<3;axis++) 
@@ -59,35 +57,46 @@ void pid()
           if (deltabpt >= 6) deltabpt = 0;
         } 
         else 
-        {
+        {//not sure what the purpose of gyro mode is
           if (flightmode == GYRO) // GYRO mode 
           { 
             //control is GYRO based (ACRO - direct sticks control is applied to rate PID
-            AngleRateTmp = rollPitchRate * rcCommand[axis];
-            RateError = AngleRateTmp - gyroData[axis];
+            AngleRateTmp = rollPitchRate * rcCommand[axis];//intended output * coefficent
+            RateError = AngleRateTmp - gyroData[axis];//prev line - gyroOutput
             //-----calculate P-term
-            PTerm = RateError * P_PID;
+            PTerm = RateError * P_PID;//error*coeffcient
             //-----calculate D-term
-            delta           = RateError - lastError[axis];  
-            lastError[axis] = RateError;
+            delta           = RateError - lastError[axis];//diff between last error and current error 
+            lastError[axis] = RateError;//update last error
 
-            deltasum[axis] += delta;
-            deltasum[axis] -= deltab[deltabpt][axis];
+            deltasum[axis] += delta;//adding up differences,
+            deltasum[axis] -= deltab[deltabpt][axis];//not sure what deltab is array of past delta values, deltabpt is the point in the array that is being read?
+			// something isnt making sense here
             deltab[deltabpt][axis] = delta;
             
-            DTerm = deltasum[axis] * D_PID;
+            DTerm = deltasum[axis] * D_PID;//sum of deltas like an integral? why is it mulitplied by the derivative coefficient
             //-----calculate I-term
-            ITerm = 0.0;
+            ITerm = 0.0;// no integral because gyro data is instantaneous i think
           }
           else // STABI mode
           {
             // calculate error and limit the angle to 45 degrees max inclination
             errorAngle = constrain(rcCommand[axis],-400,+400) - angle[axis]; //16 bits is ok here           
+			
+			// TODO check the angle readings, is is the scale from -1000 to +1000?
+
             //it's the ANGLE mode - control is angle based, so control loop is needed
             //-----calculate P-term
             PTerm = errorAngle * P_Level_PID;
             //-----calculate D-term
-            delta = - gyroData[axis]; 
+            delta = (errorAngle-lastError[axis])/(millis()-lastTime); // why is the derivative set to the negative gyroscope value? shouldnt it be something like:
+			lastError[axis] = errorAngle;//update last error
+//			derivative = (new value - old value)/time diff 
+
+			//TODO check pid loop pseudocode on wikipedia
+			//test derivative with time division and no time division
+			//adjust d coefficient, could be very different depending on time/no time
+
             DTerm = delta * D_Level_PID; 
             //-----calculate I-term
             errorAngleI[axis]  += errorAngle * I_Level_PID;
@@ -122,6 +131,7 @@ void pid()
         }
         */     
       }
+	lastTime=millis();
 }
 
 void zeroGyroAccI()

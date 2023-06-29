@@ -78,7 +78,7 @@ int debugvalue = 0;
 
 void setup() 
 {
-  Serial.begin(115200); Serial.println();
+  Serial.begin(9600); Serial.println();
 	Ps3.begin();
 	Ps3.attach(update);
 	Ps3.attachOnConnect(onConnect);
@@ -115,8 +115,9 @@ void loop()
 
     if (debugvalue == 4) Serial.printf("%4d %4d %4d %4d \n", rcValue[0], rcValue[1], rcValue[2], rcValue[3]); 
   
-    if      (rcValue[AU1] < 1300) flightmode = GYRO;
-    else                          flightmode = STABI;   
+    //if      (rcValue[AU1] < 1300) flightmode = GYRO;
+    //else                          flightmode = STABI;   
+	flightmode = STABI;
     if (oldflightmode != flightmode)
     {
       zeroGyroAccI();
@@ -158,7 +159,7 @@ void loop()
   // Failsave part
   if (now > rxt+90)
   {
-    rcValue[THR] = MINTHROTTLE;
+    rcValue[THR] = MINTHROTTLE*1.2;
     if (debugvalue == 5) Serial.printf("RC Failsafe after %d \n",now-rxt);
     rxt = now;
   }
@@ -265,7 +266,7 @@ void loop()
 int readsernum()
 {
   int num;
-  char numStr[3];  
+  char numStr[3]; 
   numStr[0] = Serial.read();
   numStr[1] = Serial.read();
   return atol(numStr);
